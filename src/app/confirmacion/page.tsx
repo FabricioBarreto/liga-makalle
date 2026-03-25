@@ -10,10 +10,10 @@ import {
 export default async function ConfirmacionPage({
   searchParams,
 }: {
-  searchParams: { ticket?: string; pending?: string };
+  searchParams: Promise<{ ticket?: string; pending?: string }>; // ← Promise<>
 }) {
-  const ticketId = searchParams.ticket;
-  const isPending = searchParams.pending === "true";
+  const { ticket: ticketId, pending } = await searchParams; // ← await y desestructurá directo
+  const isPending = pending === "true";
 
   let ticket = null;
   if (ticketId) {
