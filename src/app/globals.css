@@ -1,0 +1,95 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --c: #00d4ff;
+  --c2: #0099cc;
+  --g: #00ff88;
+  --r: #ff3b3b;
+  --y: #ffd600;
+  --bg: #080c14;
+  --bg2: #0d1320;
+  --bg3: #111927;
+  --t1: #ffffff;
+  --t2: #9bafc7;
+  --t3: #4a607a;
+  --border: rgba(0, 212, 255, 0.1);
+  --font-display: "Barlow Condensed", "Impact", sans-serif;
+  --font-body: "DM Sans", "Segoe UI", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+body {
+  background: var(--bg);
+  color: var(--t1);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes glow {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes bar {
+  from {
+    width: 0;
+  }
+  to {
+    width: var(--w);
+  }
+}
+
+.au {
+  animation: fadeUp 0.45s ease both;
+}
+.au1 {
+  animation: fadeUp 0.45s 0.08s ease both;
+}
+.au2 {
+  animation: fadeUp 0.45s 0.16s ease both;
+}
+.au3 {
+  animation: fadeUp 0.45s 0.24s ease both;
+}
+.au4 {
+  animation: fadeUp 0.45s 0.32s ease both;
+}
+.au5 {
+  animation: fadeUp 0.45s 0.4s ease both;
+}
+
+input,
+select,
+textarea {
+  font-family: var(--font-body);
+}
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.5) sepia(1) hue-rotate(180deg);
+  cursor: pointer;
+}
