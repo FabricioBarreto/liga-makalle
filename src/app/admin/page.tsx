@@ -350,29 +350,42 @@ export default function AdminPage() {
   };
 
   const openEdit = (m: Match) => {
-    const d = new Date(m.date),
-      dl = new Date(m.earlyBirdDeadline);
-    setForm({
-      opponent: m.opponent,
-      date: d.toISOString().slice(0, 10),
-      time: d.toLocaleTimeString("es-AR", {
+    const d = new Date(m.date);
+    const dl = new Date(m.earlyBirdDeadline);
+
+    // Helper: obtener fecha YYYY-MM-DD en timezone Argentina
+    const toARDate = (date: Date) =>
+      date
+        .toLocaleDateString("es-AR", {
+          timeZone: "America/Argentina/Buenos_Aires",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        })
+        .split("/")
+        .reverse()
+        .join("-"); // dd/mm/yyyy → yyyy-mm-dd
+
+    // Helper: obtener hora HH:MM en timezone Argentina
+    const toARTime = (date: Date) =>
+      date.toLocaleTimeString("es-AR", {
+        timeZone: "America/Argentina/Buenos_Aires",
         hour: "2-digit",
         minute: "2-digit",
-        timeZone: "America/Argentina/Buenos_Aires",
         hour12: false,
-      }),
+      });
+
+    setForm({
+      opponent: m.opponent,
+      date: toARDate(d),
+      time: toARTime(d),
       venue: m.venue,
       round: m.round,
       isHome: m.isHome,
       earlyBirdPrice: String(m.earlyBirdPrice),
       matchDayPrice: String(m.matchDayPrice),
-      earlyBirdDeadline: dl.toISOString().slice(0, 10),
-      earlyBirdDeadlineTime: dl.toLocaleTimeString("es-AR", {
-        hour: "2-digit",
-        minute: "2-digit",
-        timeZone: "America/Argentina/Buenos_Aires",
-        hour12: false,
-      }),
+      earlyBirdDeadline: toARDate(dl),
+      earlyBirdDeadlineTime: toARTime(dl),
       totalCapacity: String(m.totalCapacity),
     });
     setEditId(m.id);

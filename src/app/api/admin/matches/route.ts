@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-// Protección básica con secret header para el admin
 function isAuthorized(req: NextRequest): boolean {
   const secret = req.headers.get("x-admin-secret");
   return secret === process.env.ADMIN_SECRET;
 }
 
-// GET todos los partidos (incluyendo visitante)
 export async function GET(req: NextRequest) {
   if (!isAuthorized(req)) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
@@ -21,7 +19,6 @@ export async function GET(req: NextRequest) {
   return NextResponse.json(matches);
 }
 
-// POST crear nuevo partido
 export async function POST(req: NextRequest) {
   if (!isAuthorized(req)) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
@@ -46,13 +43,14 @@ export async function POST(req: NextRequest) {
   return NextResponse.json(match, { status: 201 });
 }
 
-// PATCH actualizar partido (estado, precios, etc)
 export async function PATCH(req: NextRequest) {
   if (!isAuthorized(req)) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
+
   const body = await req.json();
   const { id, ...data } = body;
+
   const match = await prisma.match.update({
     where: { id },
     data: {
@@ -60,17 +58,18 @@ export async function PATCH(req: NextRequest) {
       ...(data.opponent && { opponent: data.opponent }),
       ...(data.venue && { venue: data.venue }),
       ...(data.round && { round: data.round }),
-      ...(data.date && { date: new Date(data.date) }),
+      ...(data.date && { date: new Date(data.date + "-03:00") }),
       ...(data.isHome !== undefined && { isHome: data.isHome }),
       ...(data.earlyBirdPrice && {
         earlyBirdPrice: Number(data.earlyBirdPrice),
       }),
       ...(data.matchDayPrice && { matchDayPrice: Number(data.matchDayPrice) }),
       ...(data.earlyBirdDeadline && {
-        earlyBirdDeadline: new Date(data.earlyBirdDeadline),
+        earlyBirdDeadline: new Date(data.earlyBirdDeadline + "-03:00"),
       }),
       ...(data.totalCapacity && { totalCapacity: Number(data.totalCapacity) }),
     },
   });
+
   return NextResponse.json(match);
 }
