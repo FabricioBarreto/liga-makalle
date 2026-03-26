@@ -36,9 +36,7 @@ export default function MatchPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState({
-    buyerName: "",
     buyerEmail: "",
-    buyerEmailConfirm: "",
     buyerPhone: "",
     quantity: 1,
   });
@@ -58,10 +56,7 @@ export default function MatchPage() {
 
   const handleSubmit = async () => {
     setError("");
-    if (!form.buyerName.trim()) return setError("Ingresá tu nombre completo");
     if (!form.buyerEmail.trim()) return setError("Ingresá tu email");
-    if (form.buyerEmail !== form.buyerEmailConfirm)
-      return setError("Los emails no coinciden");
     if (!form.buyerPhone.trim()) return setError("Ingresá tu teléfono");
     setSubmitting(true);
     try {
@@ -71,7 +66,7 @@ export default function MatchPage() {
         body: JSON.stringify({
           matchId: id,
           quantity: form.quantity,
-          buyerName: form.buyerName,
+          buyerName: form.buyerEmail,
           buyerEmail: form.buyerEmail,
           buyerPhone: form.buyerPhone,
         }),
@@ -499,20 +494,8 @@ export default function MatchPage() {
                 <span style={lbl}>Datos del comprador</span>
                 {[
                   {
-                    key: "buyerName",
-                    label: "Nombre completo *",
-                    placeholder: "Juan Pérez",
-                    type: "text",
-                  },
-                  {
                     key: "buyerEmail",
                     label: "Email — recibirás las entradas acá *",
-                    placeholder: "tuemail@gmail.com",
-                    type: "email",
-                  },
-                  {
-                    key: "buyerEmailConfirm",
-                    label: "Confirmá tu email *",
                     placeholder: "tuemail@gmail.com",
                     type: "email",
                   },
