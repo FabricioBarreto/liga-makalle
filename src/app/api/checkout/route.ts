@@ -9,57 +9,55 @@ const client = new MercadoPagoConfig({
 
 export async function POST(req: NextRequest) {
   try {
-    const { matchId, quantity, buyerName, buyerEmail, buyerDni } =
+    const { matchId, quantity, buyerName, buyerEmail, buyerPhone } =
       await req.json();
 
-    // Validaciones básicas
-    if (!matchId || !quantity || !buyerName || !buyerEmail || !buyerDni) {
+    if (!matchId || !quantity || !buyerName || !buyerEmail || !buyerPhone) {
       return NextResponse.json(
         { error: "Faltan datos requeridos" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (quantity < 1 || quantity > 10) {
       return NextResponse.json(
         { error: "Cantidad inválida (1-10)" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    // Obtener partido
     const match = await prisma.match.findUnique({ where: { id: matchId } });
 
     if (!match) {
-      return NextResponse.json({ error: "Partido no encontrado" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Partido no encontrado" },
+        { status: 404 },
+      );
     }
 
     if (!isSaleOpen(match)) {
       return NextResponse.json(
         { error: "La venta de entradas está cerrada" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    // Verificar capacidad
     if (match.soldTickets + quantity > match.totalCapacity) {
       return NextResponse.json(
         { error: "No hay suficientes entradas disponibles" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    // Calcular precio según momento de compra
     const { price, isEarlyBird, label } = getTicketPrice(match);
     const totalAmount = price * quantity;
 
-    // Crear ticket pendiente en DB
     const ticket = await prisma.ticket.create({
       data: {
         matchId,
         buyerName,
         buyerEmail,
-        buyerDni,
+        buyerPhone,
         quantity,
         unitPrice: price,
         totalAmount,
@@ -68,7 +66,6 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Crear preferencia en Mercado Pago
     const preference = new Preference(client);
     const mpResponse = await preference.create({
       body: {
@@ -106,7 +103,7 @@ export async function POST(req: NextRequest) {
     console.error("Error creando checkout:", error);
     return NextResponse.json(
       { error: "Error al procesar la solicitud" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

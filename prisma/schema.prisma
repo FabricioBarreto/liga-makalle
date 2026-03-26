@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-    url       = env("DATABASE_URL")
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
@@ -13,13 +13,13 @@ model Match {
   opponent             String
   date                 DateTime
   venue                String      @default("Cancha del Club Social")
-  round                String      // "Fase de Grupos", "Octavos", "Cuartos", "Semifinal", "Final"
+  round                String
   isHome               Boolean     @default(true)
   status               MatchStatus @default(UPCOMING)
 
   earlyBirdPrice       Float
   matchDayPrice        Float
-  earlyBirdDeadline    DateTime    // hasta cuándo aplica precio con descuento
+  earlyBirdDeadline    DateTime
 
   totalCapacity        Int         @default(300)
   soldTickets          Int         @default(0)
@@ -45,7 +45,7 @@ model Ticket {
 
   buyerName     String
   buyerEmail    String
-  buyerDni      String
+  buyerPhone    String
 
   quantity      Int           @default(1)
   unitPrice     Float
@@ -53,7 +53,7 @@ model Ticket {
   isEarlyBird   Boolean       @default(false)
 
   mpPaymentId   String?       @unique
-  mpStatus      String?       @default("pending") // approved, pending, rejected
+  mpStatus      String?       @default("pending")
 
   qrCode        String        @unique @default(cuid())
   pdfSent       Boolean       @default(false)

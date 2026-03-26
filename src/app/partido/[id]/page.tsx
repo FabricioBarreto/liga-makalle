@@ -39,7 +39,7 @@ export default function MatchPage() {
     buyerName: "",
     buyerEmail: "",
     buyerEmailConfirm: "",
-    buyerDni: "",
+    buyerPhone: "",
     quantity: 1,
   });
 
@@ -62,7 +62,7 @@ export default function MatchPage() {
     if (!form.buyerEmail.trim()) return setError("Ingresá tu email");
     if (form.buyerEmail !== form.buyerEmailConfirm)
       return setError("Los emails no coinciden");
-    if (!form.buyerDni.trim()) return setError("Ingresá tu DNI");
+    if (!form.buyerPhone.trim()) return setError("Ingresá tu teléfono");
     setSubmitting(true);
     try {
       const res = await fetch("/api/checkout", {
@@ -73,7 +73,7 @@ export default function MatchPage() {
           quantity: form.quantity,
           buyerName: form.buyerName,
           buyerEmail: form.buyerEmail,
-          buyerDni: form.buyerDni,
+          buyerPhone: form.buyerPhone,
         }),
       });
       const data = await res.json();
@@ -517,10 +517,10 @@ export default function MatchPage() {
                     type: "email",
                   },
                   {
-                    key: "buyerDni",
-                    label: "DNI *",
-                    placeholder: "32456789",
-                    type: "text",
+                    key: "buyerPhone",
+                    label: "Teléfono / WhatsApp *",
+                    placeholder: "3734xxxxxx",
+                    type: "tel",
                   },
                 ].map(({ key, label, placeholder, type }) => (
                   <div key={key} style={{ marginBottom: 14 }}>
