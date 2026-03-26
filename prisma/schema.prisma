@@ -12,7 +12,7 @@ model Match {
   id                   String      @id @default(cuid())
   opponent             String
   date                 DateTime
-  venue                String      @default("Estadio Municipal")
+  venue                String      @default("Cancha del Club Social")
   round                String      // "Fase de Grupos", "Octavos", "Cuartos", "Semifinal", "Final"
   isHome               Boolean     @default(true)
   status               MatchStatus @default(UPCOMING)

@@ -4,7 +4,7 @@ export type PriceInfo = {
   price: number;
   isEarlyBird: boolean;
   label: string;
-  savings: number; // cuánto ahorrás vs precio día del partido
+  savings: number;
 };
 
 export function getTicketPrice(match: Match): PriceInfo {
@@ -12,8 +12,7 @@ export function getTicketPrice(match: Match): PriceInfo {
   const matchDate = new Date(match.date);
   const earlyBirdDeadline = new Date(match.earlyBirdDeadline);
 
-  const isMatchDay =
-    now.toDateString() === matchDate.toDateString();
+  const isMatchDay = now.toDateString() === matchDate.toDateString();
   const isBeforeDeadline = now <= earlyBirdDeadline;
   const isEarlyBird = !isMatchDay && isBeforeDeadline;
 
@@ -48,6 +47,7 @@ export function formatDate(date: Date | string): string {
     year: "numeric",
     month: "long",
     day: "numeric",
+    timeZone: "America/Argentina/Buenos_Aires",
   });
 }
 
@@ -55,6 +55,7 @@ export function formatShortDate(date: Date | string): string {
   return new Date(date).toLocaleDateString("es-AR", {
     day: "numeric",
     month: "long",
+    timeZone: "America/Argentina/Buenos_Aires",
   });
 }
 
@@ -62,6 +63,7 @@ export function formatTime(date: Date | string): string {
   return new Date(date).toLocaleTimeString("es-AR", {
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: "America/Argentina/Buenos_Aires",
   });
 }
 

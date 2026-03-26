@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     data: {
       opponent: body.opponent,
       date: new Date(body.date),
-      venue: body.venue || "Estadio Municipal",
+      venue: body.venue || "Cancha del Club Social",
       round: body.round,
       isHome: body.isHome ?? true,
       earlyBirdPrice: Number(body.earlyBirdPrice),
@@ -51,15 +51,20 @@ export async function PATCH(req: NextRequest) {
   if (!isAuthorized(req)) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
-
   const body = await req.json();
   const { id, ...data } = body;
-
   const match = await prisma.match.update({
     where: { id },
     data: {
       ...(data.status && { status: data.status }),
-      ...(data.earlyBirdPrice && { earlyBirdPrice: Number(data.earlyBirdPrice) }),
+      ...(data.opponent && { opponent: data.opponent }),
+      ...(data.venue && { venue: data.venue }),
+      ...(data.round && { round: data.round }),
+      ...(data.date && { date: new Date(data.date) }),
+      ...(data.isHome !== undefined && { isHome: data.isHome }),
+      ...(data.earlyBirdPrice && {
+        earlyBirdPrice: Number(data.earlyBirdPrice),
+      }),
       ...(data.matchDayPrice && { matchDayPrice: Number(data.matchDayPrice) }),
       ...(data.earlyBirdDeadline && {
         earlyBirdDeadline: new Date(data.earlyBirdDeadline),
@@ -67,6 +72,5 @@ export async function PATCH(req: NextRequest) {
       ...(data.totalCapacity && { totalCapacity: Number(data.totalCapacity) }),
     },
   });
-
   return NextResponse.json(match);
 }

@@ -44,7 +44,7 @@ const emptyForm = {
   opponent: "",
   date: "",
   time: "17:00",
-  venue: "Estadio Municipal",
+  venue: "Cancha del Club Social",
   round: "",
   isHome: true,
   earlyBirdPrice: "",
@@ -355,14 +355,24 @@ export default function AdminPage() {
     setForm({
       opponent: m.opponent,
       date: d.toISOString().slice(0, 10),
-      time: d.toTimeString().slice(0, 5),
+      time: d.toLocaleTimeString("es-AR", {
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZone: "America/Argentina/Buenos_Aires",
+        hour12: false,
+      }),
       venue: m.venue,
       round: m.round,
       isHome: m.isHome,
       earlyBirdPrice: String(m.earlyBirdPrice),
       matchDayPrice: String(m.matchDayPrice),
       earlyBirdDeadline: dl.toISOString().slice(0, 10),
-      earlyBirdDeadlineTime: dl.toTimeString().slice(0, 5),
+      earlyBirdDeadlineTime: dl.toLocaleTimeString("es-AR", {
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZone: "America/Argentina/Buenos_Aires",
+        hour12: false,
+      }),
       totalCapacity: String(m.totalCapacity),
     });
     setEditId(m.id);
@@ -1140,11 +1150,13 @@ function MatchCard({
                 weekday: "short",
                 day: "numeric",
                 month: "short",
+                timeZone: "America/Argentina/Buenos_Aires",
               }) +
               " · " +
               d.toLocaleTimeString("es-AR", {
                 hour: "2-digit",
                 minute: "2-digit",
+                timeZone: "America/Argentina/Buenos_Aires",
               }) +
               " hs"
             );
