@@ -32,13 +32,13 @@ export async function POST(req: NextRequest) {
   const match = await prisma.match.create({
     data: {
       opponent: body.opponent,
-      date: new Date(body.date),
+      date: new Date(body.date + "-03:00"),
       venue: body.venue || "Cancha del Club Social",
       round: body.round,
       isHome: body.isHome ?? true,
       earlyBirdPrice: Number(body.earlyBirdPrice),
       matchDayPrice: Number(body.matchDayPrice),
-      earlyBirdDeadline: new Date(body.earlyBirdDeadline),
+      earlyBirdDeadline: new Date(body.earlyBirdDeadline + "-03:00"),
       totalCapacity: Number(body.totalCapacity) || 300,
     },
   });
