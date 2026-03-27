@@ -1,7 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+function isAuthorized(req: NextRequest): boolean {
+  const secret = req.headers.get("x-admin-secret");
+  return secret === process.env.ADMIN_SECRET;
+}
+
 export async function GET(req: NextRequest) {
+  // Solo el admin puede validar QRs
+  if (!isAuthorized(req)) {
+    return NextResponse.json(
+      { valid: false, error: "No autorizado" },
+      { status: 401 },
+    );
+  }
+
   try {
     const qrCode = req.nextUrl.searchParams.get("qr");
     if (!qrCode) {
@@ -30,7 +43,6 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // ← Bloquear si ya fue usada
     if (ticket.usedAt) {
       const usedDate = new Date(ticket.usedAt).toLocaleString("es-AR", {
         dateStyle: "short",
@@ -38,15 +50,11 @@ export async function GET(req: NextRequest) {
         timeZone: "America/Argentina/Buenos_Aires",
       });
       return NextResponse.json(
-        {
-          valid: false,
-          error: `Entrada ya utilizada el ${usedDate}`,
-        },
+        { valid: false, error: `Entrada ya utilizada el ${usedDate}` },
         { status: 400 },
       );
     }
 
-    // Marcar como usada
     await prisma.ticket.update({
       where: { qrCode },
       data: { usedAt: new Date() },
