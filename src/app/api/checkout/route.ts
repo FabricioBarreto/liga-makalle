@@ -88,6 +88,7 @@ export async function POST(req: NextRequest) {
         email: normalizedEmail,
       },
       external_reference: ticket.id,
+      notification_url: `${baseUrl}/api/webhook/mp`, // ← esto faltaba
       back_urls: {
         success: `${baseUrl}/confirmacion?ticket=${ticket.id}`,
         failure: `${baseUrl}/error-pago?ticket=${ticket.id}`,
