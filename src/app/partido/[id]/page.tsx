@@ -66,7 +66,6 @@ export default function MatchPage() {
         body: JSON.stringify({
           matchId: id,
           quantity: form.quantity,
-          buyerName: form.buyerEmail,
           buyerEmail: form.buyerEmail,
           buyerPhone: form.buyerPhone,
         }),

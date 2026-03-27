@@ -1,18 +1,10 @@
+// src/lib/email.ts
 import nodemailer from "nodemailer";
-import { formatDate, formatTime, formatPrice, generateOrderNumber } from "./pricing";
-
-// Mismo transporter que Makalle Carnavales
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.GMAIL_USER,
-    pass: process.env.GMAIL_APP_PASSWORD,
-  },
-});
+import QRCode from "qrcode";
 
 export interface SendTicketEmailParams {
   to: string;
-  buyerName: string;
+  buyerPhone: string;
   matchOpponent: string;
   matchDate: Date | string;
   matchVenue: string;
@@ -22,286 +14,131 @@ export interface SendTicketEmailParams {
   unitPrice: number;
   totalAmount: number;
   isEarlyBird: boolean;
-  qrCode: string;
-  pdfBuffer?: Buffer; // PDF adjunto si se genera
+  qrCode: string; // el cuid guardado en DB
 }
 
-export async function sendTicketEmail(params: SendTicketEmailParams): Promise<{
-  success: boolean;
-  messageId?: string;
-  error?: string;
-}> {
-  const {
-    to,
-    buyerName,
-    matchOpponent,
-    matchDate,
-    matchVenue,
-    matchRound,
-    ticketId,
-    quantity,
-    unitPrice,
-    totalAmount,
-    isEarlyBird,
-    qrCode,
-    pdfBuffer,
-  } = params;
-
-  const orderNumber = generateOrderNumber(ticketId);
-  const dateStr = formatDate(matchDate);
-  const timeStr = formatTime(matchDate);
-
+export async function sendTicketEmail(
+  p: SendTicketEmailParams,
+): Promise<{ success: boolean; error?: string }> {
   try {
-    const htmlContent = generateEmailHTML({
-      buyerName,
-      matchOpponent,
-      matchDate: dateStr,
-      matchTime: timeStr,
-      matchVenue,
-      matchRound,
-      orderNumber,
-      quantity,
-      unitPrice,
-      totalAmount,
-      isEarlyBird,
-      qrCode,
-    });
-
-    const textContent = generateEmailText({
-      buyerName,
-      matchOpponent,
-      matchDate: dateStr,
-      matchTime: timeStr,
-      matchVenue,
-      orderNumber,
-      quantity,
-      totalAmount,
-      qrCode,
-    });
-
-    const mailOptions: nodemailer.SendMailOptions = {
-      from: {
-        name: process.env.EMAIL_FROM_NAME || "Entradas Futbol",
-        address: process.env.GMAIL_USER || "",
+    const transporter = nodemailer.createTransport({
+      host: "smtp.gmail.com",
+      port: 587,
+      secure: false,
+      auth: {
+        user: process.env.GMAIL_USER,
+        pass: process.env.GMAIL_APP_PASSWORD,
       },
-      to,
-      subject: `Tus entradas: ${matchOpponent} - ${matchRound}`,
-      text: textContent,
-      html: htmlContent,
-      ...(pdfBuffer && {
-        attachments: [
-          {
-            filename: `entrada-${orderNumber}.pdf`,
-            content: pdfBuffer,
-            contentType: "application/pdf",
-          },
-        ],
-      }),
-    };
+    });
 
-    const info = await transporter.sendMail(mailOptions);
-    console.log("Email enviado:", info.messageId);
+    // Generar imagen QR a partir del qrCode guardado en DB
+    const qrImageBase64 = await QRCode.toDataURL(p.qrCode, { width: 280 });
 
-    return { success: true, messageId: info.messageId };
-  } catch (error: any) {
-    console.error("Error enviando email:", error);
-    return { success: false, error: error.message };
-  }
-}
+    const formattedDate = new Date(p.matchDate).toLocaleString("es-AR", {
+      dateStyle: "full",
+      timeStyle: "short",
+    });
 
-// --- HTML template ---
-function generateEmailHTML(p: {
-  buyerName: string;
-  matchOpponent: string;
-  matchDate: string;
-  matchTime: string;
-  matchVenue: string;
-  matchRound: string;
-  orderNumber: string;
-  quantity: number;
-  unitPrice: number;
-  totalAmount: number;
-  isEarlyBird: boolean;
-  qrCode: string;
-}) {
-  return `
+    const html = `
 <!DOCTYPE html>
-<html lang="es">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Tus entradas</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Helvetica Neue', Arial, sans-serif; background: #f0f0f0; color: #111; }
-    .wrapper { max-width: 580px; margin: 0 auto; padding: 20px; }
-    .card { background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
-    .header { background: #16a34a; padding: 32px 24px; text-align: center; }
-    .header h1 { color: #fff; font-size: 22px; font-weight: 700; margin-bottom: 6px; }
-    .header p { color: #bbf7d0; font-size: 14px; }
-    .badge { display: inline-block; background: #fbbf24; color: #78350f; font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 999px; margin-top: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
-    .body { padding: 28px 24px; }
-    .greeting { font-size: 17px; color: #111; margin-bottom: 20px; }
-    .info-block { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 18px; margin-bottom: 20px; }
-    .info-block .row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f3f4f6; font-size: 14px; }
-    .info-block .row:last-child { border-bottom: none; }
-    .info-block .row .label { color: #6b7280; }
-    .info-block .row .value { color: #111; font-weight: 600; text-align: right; max-width: 60%; }
-    .price-block { background: #f0fdf4; border: 2px solid #86efac; border-radius: 12px; padding: 16px; text-align: center; margin-bottom: 20px; }
-    .price-block .total { font-size: 28px; font-weight: 800; color: #16a34a; }
-    .price-block .sublabel { font-size: 13px; color: #4b5563; margin-top: 4px; }
-    .earlybird { background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 10px 14px; font-size: 13px; color: #92400e; margin-bottom: 20px; text-align: center; }
-    .qr-block { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 20px; }
-    .qr-block h3 { font-size: 15px; color: #111; margin-bottom: 8px; }
-    .qr-code { font-family: 'Courier New', monospace; font-size: 13px; color: #374151; background: #fff; border: 1px dashed #d1d5db; border-radius: 8px; padding: 12px; display: inline-block; word-break: break-all; }
-    .instructions { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 16px; margin-bottom: 20px; }
-    .instructions h4 { font-size: 14px; color: #1d4ed8; margin-bottom: 10px; }
-    .instructions ul { padding-left: 18px; }
-    .instructions li { font-size: 13px; color: #1e40af; margin-bottom: 6px; line-height: 1.5; }
-    .footer { padding: 20px 24px; background: #f9fafb; text-align: center; font-size: 12px; color: #6b7280; border-top: 1px solid #e5e7eb; }
-    .footer a { color: #16a34a; text-decoration: none; }
-    @media (max-width: 480px) {
-      .info-block .row { flex-direction: column; gap: 2px; }
-      .info-block .row .value { text-align: left; max-width: 100%; }
-    }
-  </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
-<body>
-  <div class="wrapper">
-    <div class="card">
-      <div class="header">
-        <h1>Tus entradas estan listas</h1>
-        <p>${p.matchOpponent}</p>
-        ${p.isEarlyBird ? '<span class="badge">Precio Anticipado</span>' : ""}
+<body style="font-family: Arial, sans-serif; background-color: #f5f5f5; margin: 0; padding: 20px;">
+  <div style="max-width: 560px; margin: 0 auto; background: white; border-radius: 12px; padding: 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+
+    <!-- Header -->
+    <div style="text-align: center; padding-bottom: 20px; border-bottom: 3px solid #16a34a;">
+      <h1 style="color: #16a34a; margin: 0; font-size: 28px;">⚽ Entrada Confirmada</h1>
+      <p style="color: #6b7280; margin: 6px 0 0;">Tu pago fue aprobado</p>
+    </div>
+
+    <!-- Detalles del partido -->
+    <div style="background: linear-gradient(135deg, #15803d, #166534); border-radius: 10px; padding: 20px; margin: 24px 0; color: white;">
+      <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.2);">
+        <span>Partido</span>
+        <strong>${p.matchOpponent}</strong>
       </div>
-
-      <div class="body">
-        <p class="greeting">Hola <strong>${p.buyerName}</strong>, tu pago fue confirmado.</p>
-
-        <div class="info-block">
-          <div class="row">
-            <span class="label">Partido</span>
-            <span class="value">${p.matchOpponent}</span>
-          </div>
-          <div class="row">
-            <span class="label">Instancia</span>
-            <span class="value">${p.matchRound}</span>
-          </div>
-          <div class="row">
-            <span class="label">Fecha</span>
-            <span class="value">${p.matchDate}</span>
-          </div>
-          <div class="row">
-            <span class="label">Hora</span>
-            <span class="value">${p.matchTime}</span>
-          </div>
-          <div class="row">
-            <span class="label">Estadio</span>
-            <span class="value">${p.matchVenue}</span>
-          </div>
-          <div class="row">
-            <span class="label">Orden</span>
-            <span class="value">${p.orderNumber}</span>
-          </div>
-          <div class="row">
-            <span class="label">Cantidad</span>
-            <span class="value">${p.quantity} entrada${p.quantity > 1 ? "s" : ""}</span>
-          </div>
-        </div>
-
-        <div class="price-block">
-          <div class="total">${formatPrice(p.totalAmount)}</div>
-          <div class="sublabel">${p.quantity} x ${formatPrice(p.unitPrice)}</div>
-        </div>
-
-        ${
-          p.isEarlyBird
-            ? `<div class="earlybird">Compraste con descuento anticipado</div>`
-            : ""
-        }
-
-        <div class="qr-block">
-          <h3>Tu codigo QR de acceso</h3>
-          <p style="font-size:13px; color:#6b7280; margin-bottom: 12px;">Presenta este codigo en la entrada del estadio</p>
-          <div class="qr-code">${p.qrCode}</div>
-          <p style="font-size: 12px; color: #9ca3af; margin-top: 8px;">Orden: ${p.orderNumber}</p>
-        </div>
-
-        <div class="instructions">
-          <h4>Instrucciones importantes</h4>
-          <ul>
-            <li>Guarda este email, lo vas a necesitar en la entrada</li>
-            <li>Podes mostrar el codigo QR desde el celular o impreso</li>
-            <li>Cada entrada tiene un QR unico e intransferible</li>
-            <li>Llega con tiempo suficiente al estadio</li>
-          </ul>
-        </div>
+      <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.2);">
+        <span>Fecha</span>
+        <strong>${formattedDate}</strong>
       </div>
-
-      <div class="footer">
-        <p>Consultas: <a href="mailto:${process.env.GMAIL_USER}">${process.env.GMAIL_USER}</a></p>
-        <p style="margin-top: 8px;">Este es un email automatico, por favor no respondas directamente.</p>
+      <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.2);">
+        <span>Lugar</span>
+        <strong>${p.matchVenue}</strong>
+      </div>
+      <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.2);">
+        <span>Fase</span>
+        <strong>${p.matchRound}</strong>
+      </div>
+      <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.2);">
+        <span>Cantidad</span>
+        <strong>${p.quantity} entrada${p.quantity > 1 ? "s" : ""}</strong>
+      </div>
+      <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.2);">
+        <span>Precio unitario</span>
+        <strong>$${p.unitPrice.toLocaleString("es-AR")}</strong>
+      </div>
+      <div style="display: flex; justify-content: space-between; padding: 8px 0;">
+        <span>Total pagado</span>
+        <strong style="font-size: 18px;">$${p.totalAmount.toLocaleString("es-AR")}</strong>
       </div>
     </div>
+
+    ${
+      p.isEarlyBird
+        ? `
+    <div style="background: #fef9c3; border-left: 4px solid #ca8a04; padding: 12px 16px; border-radius: 6px; margin-bottom: 20px;">
+      ✅ <strong>Precio Early Bird aplicado</strong>
+    </div>
+    `
+        : ""
+    }
+
+    <!-- QR -->
+    <div style="text-align: center; margin: 24px 0; padding: 24px; background: #f9fafb; border-radius: 10px; border: 2px dashed #16a34a;">
+      <p style="margin: 0 0 12px; font-weight: bold; color: #111827;">Mostrá este QR en el ingreso</p>
+      <img src="${qrImageBase64}" alt="QR de entrada" width="220" height="220" style="display: block; margin: 0 auto;" />
+      <p style="margin: 12px 0 0; font-size: 11px; color: #9ca3af; word-break: break-all;">${p.qrCode}</p>
+    </div>
+
+    <!-- Instrucciones -->
+    <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px 20px; border-radius: 6px; margin-bottom: 24px;">
+      <strong>Instrucciones importantes:</strong>
+      <ul style="margin: 8px 0 0; padding-left: 20px; color: #374151;">
+        <li>Guardá este email antes del partido</li>
+        <li>Podés mostrar el QR desde el celular o impreso</li>
+        <li>Cada QR es único e intransferible</li>
+        <li>Llegá con tiempo al estadio</li>
+      </ul>
+    </div>
+
+    <!-- Footer -->
+    <div style="text-align: center; color: #9ca3af; font-size: 12px; border-top: 1px solid #e5e7eb; padding-top: 16px;">
+      <p style="margin: 0;">ID de ticket: ${p.ticketId}</p>
+      <p style="margin: 4px 0 0;">Este es un email automático, no respondas directamente.</p>
+    </div>
+
   </div>
 </body>
 </html>
-  `;
-}
+    `;
 
-// --- Texto plano ---
-function generateEmailText(p: {
-  buyerName: string;
-  matchOpponent: string;
-  matchDate: string;
-  matchTime: string;
-  matchVenue: string;
-  orderNumber: string;
-  quantity: number;
-  totalAmount: number;
-  qrCode: string;
-}) {
-  return `
-Hola ${p.buyerName}!
+    await transporter.sendMail({
+      from: {
+        name: "Entradas Fútbol Makallé",
+        address: process.env.GMAIL_USER || "",
+      },
+      to: p.to,
+      subject: `⚽ Tu entrada para ${p.matchOpponent} está confirmada`,
+      html,
+    });
 
-Tu pago fue confirmado. Aqui estan los detalles de tus entradas:
-
-PARTIDO: ${p.matchOpponent}
-FECHA: ${p.matchDate}
-HORA: ${p.matchTime}
-ESTADIO: ${p.matchVenue}
-ORDEN: ${p.orderNumber}
-CANTIDAD: ${p.quantity} entrada(s)
-TOTAL: ${formatPrice(p.totalAmount)}
-
-CODIGO QR DE ACCESO:
-${p.qrCode}
-
-Presenta este codigo en la entrada del estadio (desde el celular o impreso).
-
-Instrucciones:
-- Guarda este email
-- El QR es unico e intransferible
-- Llega con tiempo al estadio
-
-Consultas: ${process.env.GMAIL_USER}
-
----
-Email automatico, no respondas directamente.
-  `.trim();
-}
-
-export async function verifyEmailConfig(): Promise<boolean> {
-  try {
-    if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
-      console.error("Gmail credenciales no configuradas");
-      return false;
-    }
-    await transporter.verify();
-    console.log("Gmail SMTP OK:", process.env.GMAIL_USER);
-    return true;
-  } catch (error) {
-    console.error("Error verificando Gmail:", error);
-    return false;
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error enviando email:", error);
+    return { success: false, error: error.message };
   }
 }

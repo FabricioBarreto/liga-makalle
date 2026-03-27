@@ -3,32 +3,48 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider  = "postgresql"
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
 model Match {
-  id                   String      @id @default(cuid())
-  opponent             String
-  date                 DateTime
-  venue                String      @default("Cancha del Club Social")
-  round                String
-  isHome               Boolean     @default(true)
-  status               MatchStatus @default(UPCOMING)
-
-  earlyBirdPrice       Float
-  matchDayPrice        Float
-  earlyBirdDeadline    DateTime
-
-  totalCapacity        Int         @default(300)
-  soldTickets          Int         @default(0)
-
-  tickets              Ticket[]
-  createdAt            DateTime    @default(now())
-  updatedAt            DateTime    @updatedAt
+  id                String      @id @default(cuid())
+  opponent          String
+  date              DateTime
+  venue             String      @default("Cancha del Club Social")
+  round             String
+  isHome            Boolean     @default(true)
+  status            MatchStatus @default(UPCOMING)
+  earlyBirdPrice    Float
+  matchDayPrice     Float
+  earlyBirdDeadline DateTime
+  totalCapacity     Int         @default(300)
+  soldTickets       Int         @default(0)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  tickets           Ticket[]
 
   @@map("matches")
+}
+model Ticket {
+  id          String    @id @default(cuid())
+  matchId     String
+  buyerEmail  String
+  quantity    Int       @default(1)
+  unitPrice   Float
+  totalAmount Float
+  isEarlyBird Boolean   @default(false)
+  mpPaymentId String?   @unique
+  mpStatus    String?   @default("pending")
+  qrCode      String    @unique @default(cuid())
+  pdfSent     Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  paidAt      DateTime?
+  buyerPhone  String
+  match       Match     @relation(fields: [matchId], references: [id])
+
+  @@map("tickets")
 }
 
 enum MatchStatus {
@@ -36,30 +52,4 @@ enum MatchStatus {
   SOLD_OUT
   FINISHED
   CANCELLED
-}
-
-model Ticket {
-  id            String        @id @default(cuid())
-  matchId       String
-  match         Match         @relation(fields: [matchId], references: [id])
-
-  buyerName     String
-  buyerEmail    String
-  buyerPhone    String
-
-  quantity      Int           @default(1)
-  unitPrice     Float
-  totalAmount   Float
-  isEarlyBird   Boolean       @default(false)
-
-  mpPaymentId   String?       @unique
-  mpStatus      String?       @default("pending")
-
-  qrCode        String        @unique @default(cuid())
-  pdfSent       Boolean       @default(false)
-
-  createdAt     DateTime      @default(now())
-  paidAt        DateTime?
-
-  @@map("tickets")
 }
