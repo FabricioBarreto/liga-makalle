@@ -66,6 +66,7 @@ export default function MatchPage() {
         body: JSON.stringify({
           matchId: id,
           quantity: form.quantity,
+          buyerName: form.buyerEmail,
           buyerEmail: form.buyerEmail,
           buyerPhone: form.buyerPhone,
         }),
@@ -589,6 +590,29 @@ export default function MatchPage() {
                     {error}
                   </div>
                 )}
+
+                {/* Aviso uso único */}
+                <div
+                  style={{
+                    background: "rgba(255,214,0,0.05)",
+                    border: "1px solid rgba(255,214,0,0.2)",
+                    borderRadius: 8,
+                    padding: "10px 14px",
+                    color: "#FFD600",
+                    fontSize: 12,
+                    marginBottom: 16,
+                    display: "flex",
+                    gap: 8,
+                    alignItems: "flex-start",
+                  }}
+                >
+                  <span style={{ fontSize: 14, flexShrink: 0 }}>⚠️</span>
+                  <span>
+                    <strong>Entrada de uso único.</strong> Cada QR solo puede
+                    ser escaneado una vez en la entrada del estadio. No
+                    compartas tu código con nadie.
+                  </span>
+                </div>
 
                 <button
                   onClick={handleSubmit}

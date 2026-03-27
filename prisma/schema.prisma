@@ -43,6 +43,7 @@ model Ticket {
   paidAt      DateTime?
   buyerPhone  String
   match       Match     @relation(fields: [matchId], references: [id])
+  usedAt    DateTime?
 
   @@map("tickets")
 }

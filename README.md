@@ -35,14 +35,14 @@ npm run dev
 
 ## Variables de entorno requeridas
 
-| Variable | Descripción |
-|---|---|
-| `DATABASE_URL` | PostgreSQL de Supabase |
-| `MP_ACCESS_TOKEN` | Access Token de Mercado Pago (producción o TEST-...) |
-| `GMAIL_USER` | Email de Gmail para enviar entradas |
-| `GMAIL_APP_PASSWORD` | App Password de Google (no la contraseña normal) |
-| `NEXT_PUBLIC_BASE_URL` | URL del sitio en producción (sin barra final) |
-| `ADMIN_SECRET` | Clave para proteger las rutas de admin |
+| Variable               | Descripción                                          |
+| ---------------------- | ---------------------------------------------------- |
+| `DATABASE_URL`         | PostgreSQL de Supabase                               |
+| `MP_ACCESS_TOKEN`      | Access Token de Mercado Pago (producción o TEST-...) |
+| `GMAIL_USER`           | Email de Gmail para enviar entradas                  |
+| `GMAIL_APP_PASSWORD`   | App Password de Google (no la contraseña normal)     |
+| `NEXT_PUBLIC_BASE_URL` | URL del sitio en producción (sin barra final)        |
+| `ADMIN_SECRET`         | Clave para proteger las rutas de admin               |
 
 ---
 
@@ -65,7 +65,7 @@ curl -X POST https://tudominio.com/api/admin/matches \
   -d '{
     "opponent": "vs. Atlético Charata",
     "date": "2025-09-14T17:00:00",
-    "venue": "Estadio Municipal Makallé",
+    "venue": "Cancha del Club Social Makallé",
     "round": "Cuartos de Final",
     "isHome": true,
     "earlyBirdPrice": 2500,
@@ -90,7 +90,7 @@ curl -X PATCH https://tudominio.com/api/admin/matches \
 ## Lógica de precios
 
 - **Precio anticipado**: aplica desde que se crea el partido hasta `earlyBirdDeadline`
-- **Precio normal/día del partido**: aplica desde que vence el early bird, y el mismo día del partido
+- **Precio normal/día del partido**: aplica desde que vence el preventa, y el mismo día del partido
 - Si el equipo avanza de ronda → agregar nuevo partido desde la API admin
 
 ---

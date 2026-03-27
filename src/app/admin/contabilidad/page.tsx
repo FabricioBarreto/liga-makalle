@@ -94,8 +94,8 @@ export default function ContabilidadPage() {
         "Fecha",
         "Estado",
         "Entradas Totales",
-        "Early Bird (cant)",
-        "Early Bird ($)",
+        "preventa (cant)",
+        "preventa ($)",
         "Normal (cant)",
         "Normal ($)",
         "Ingresos Totales",
@@ -490,7 +490,7 @@ export default function ContabilidadPage() {
                     {[
                       { l: "Entradas", v: String(m.entradas), c: "#fff" },
                       {
-                        l: "Early Bird",
+                        l: "preventa",
                         v: `${m.earlyBirdCount} · ${fmt(m.earlyBirdIngresos)}`,
                         c: C.yellow,
                       },

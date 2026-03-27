@@ -91,7 +91,7 @@ export async function sendTicketEmail(
       p.isEarlyBird
         ? `
     <div style="background: #fef9c3; border-left: 4px solid #ca8a04; padding: 12px 16px; border-radius: 6px; margin-bottom: 20px;">
-      ✅ <strong>Precio Early Bird aplicado</strong>
+      ✅ <strong>Precio preventa aplicado</strong>
     </div>
     `
         : ""

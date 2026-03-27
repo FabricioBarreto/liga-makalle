@@ -589,7 +589,7 @@ export default function OperadorPage() {
                   ["Email", result.email],
                   ["Teléfono", result.phone],
                   ["Entradas", `${result.quantity}`],
-                  ["Tipo", result.isEarlyBird ? "Early Bird" : "Precio normal"],
+                  ["Tipo", result.isEarlyBird ? "preventa" : "Precio normal"],
                 ].map(([l, v]) => (
                   <div
                     key={l}
