@@ -14,7 +14,7 @@ export interface SendTicketEmailParams {
   unitPrice: number;
   totalAmount: number;
   isEarlyBird: boolean;
-  qrCode: string; // el cuid guardado en DB
+  qrCode: string;
 }
 
 export async function sendTicketEmail(
@@ -31,8 +31,8 @@ export async function sendTicketEmail(
       },
     });
 
-    // Generar imagen QR a partir del qrCode guardado en DB
-    const qrImageBase64 = await QRCode.toDataURL(p.qrCode, { width: 280 });
+    // Generar QR como buffer PNG
+    const qrBuffer = await QRCode.toBuffer(p.qrCode, { width: 280 });
 
     const formattedDate = new Date(p.matchDate).toLocaleString("es-AR", {
       dateStyle: "full",
@@ -100,7 +100,7 @@ export async function sendTicketEmail(
     <!-- QR -->
     <div style="text-align: center; margin: 24px 0; padding: 24px; background: #f9fafb; border-radius: 10px; border: 2px dashed #16a34a;">
       <p style="margin: 0 0 12px; font-weight: bold; color: #111827;">Mostrá este QR en el ingreso</p>
-      <img src="${qrImageBase64}" alt="QR de entrada" width="220" height="220" style="display: block; margin: 0 auto;" />
+      <img src="cid:qrcode@ligamakalle" alt="QR de entrada" width="220" height="220" style="display: block; margin: 0 auto;" />
       <p style="margin: 12px 0 0; font-size: 11px; color: #9ca3af; word-break: break-all;">${p.qrCode}</p>
     </div>
 
@@ -134,6 +134,13 @@ export async function sendTicketEmail(
       to: p.to,
       subject: `⚽ Tu entrada para ${p.matchOpponent} está confirmada`,
       html,
+      attachments: [
+        {
+          filename: "qr.png",
+          content: qrBuffer,
+          cid: "qrcode@ligamakalle",
+        },
+      ],
     });
 
     return { success: true };
