@@ -1,8 +1,8 @@
+// src/app/api/webhook/mp/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { MercadoPagoConfig, Payment } from "mercadopago";
 import { prisma } from "@/lib/prisma";
 import { sendTicketEmail } from "@/lib/email";
-import QRCode from "qrcode";
 
 const client = new MercadoPagoConfig({
   accessToken: process.env.MP_ACCESS_TOKEN!,
@@ -13,15 +13,28 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     console.log("Webhook MP recibido:", JSON.stringify(body, null, 2));
 
-    if (body.type !== "payment") return NextResponse.json({ ok: true });
+    if (body.type !== "payment") {
+      return NextResponse.json({ ok: true });
+    }
 
     const paymentId = body.data?.id;
-    if (!paymentId) return NextResponse.json({ ok: true });
+    if (!paymentId) {
+      return NextResponse.json({ ok: true });
+    }
 
     const paymentClient = new Payment(client);
     const payment = await paymentClient.get({ id: paymentId });
 
-    if (!payment.external_reference) return NextResponse.json({ ok: true });
+    console.log(
+      "Pago MP:",
+      payment.id,
+      payment.status,
+      payment.external_reference,
+    );
+
+    if (!payment.external_reference) {
+      return NextResponse.json({ ok: true });
+    }
 
     const ticketId = payment.external_reference;
 
@@ -30,31 +43,34 @@ export async function POST(req: NextRequest) {
       include: { match: true },
     });
 
-    if (!existingTicket) return NextResponse.json({ ok: true });
-    if (existingTicket.mpStatus === "approved")
+    if (!existingTicket) {
+      console.error("Ticket no encontrado:", ticketId);
       return NextResponse.json({ ok: true });
+    }
+
+    // Si ya fue procesado, no hacer nada
+    if (existingTicket.mpStatus === "approved") {
+      return NextResponse.json({ ok: true });
+    }
 
     if (payment.status === "approved") {
-      // Generar QR code — el contenido es el ticketId
-      const qrCode = ticketId;
-      const qrImageBase64 = await QRCode.toDataURL(qrCode, { width: 300 });
-
       const ticket = await prisma.ticket.update({
         where: { id: ticketId },
         data: {
           mpPaymentId: String(payment.id),
           mpStatus: "approved",
           paidAt: new Date(),
-          qrCode, // ← se guarda en DB
         },
         include: { match: true },
       });
 
+      // Incrementar entradas vendidas
       await prisma.match.update({
         where: { id: ticket.matchId },
         data: { soldTickets: { increment: ticket.quantity } },
       });
 
+      // Marcar sold out si corresponde
       const updatedMatch = await prisma.match.findUnique({
         where: { id: ticket.matchId },
       });
@@ -68,8 +84,8 @@ export async function POST(req: NextRequest) {
         });
       }
 
+      // Enviar email solo si no fue enviado antes
       if (!ticket.pdfSent) {
-        // en el webhook, al enviar el email:
         const emailResult = await sendTicketEmail({
           to: ticket.buyerEmail,
           buyerPhone: ticket.buyerPhone,
@@ -82,7 +98,7 @@ export async function POST(req: NextRequest) {
           unitPrice: Number(ticket.unitPrice),
           totalAmount: Number(ticket.totalAmount),
           isEarlyBird: ticket.isEarlyBird,
-          qrCode: ticket.qrCode, // ← viene de DB, ya existe
+          qrCode: ticket.qrCode, // ← viene de DB, ya existe por @default(cuid())
         });
 
         if (emailResult.success) {
@@ -90,6 +106,7 @@ export async function POST(req: NextRequest) {
             where: { id: ticket.id },
             data: { pdfSent: true },
           });
+          console.log("Email enviado a:", ticket.buyerEmail);
         } else {
           console.error("Error enviando email:", emailResult.error);
         }
@@ -102,6 +119,7 @@ export async function POST(req: NextRequest) {
           mpStatus: "rejected",
         },
       });
+      console.log("Pago rechazado para ticket:", ticketId);
     }
 
     return NextResponse.json({ ok: true });
