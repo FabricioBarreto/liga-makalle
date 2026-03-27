@@ -1,4 +1,3 @@
-// src/lib/email.ts
 import nodemailer from "nodemailer";
 import QRCode from "qrcode";
 
@@ -14,7 +13,7 @@ export interface SendTicketEmailParams {
   unitPrice: number;
   totalAmount: number;
   isEarlyBird: boolean;
-  qrCode: string;
+  qrCodes: string[]; // ← array de QRs, uno por entrada
 }
 
 export async function sendTicketEmail(
@@ -31,13 +30,41 @@ export async function sendTicketEmail(
       },
     });
 
-    // Generar QR como buffer PNG
-    const qrBuffer = await QRCode.toBuffer(p.qrCode, { width: 280 });
-
     const formattedDate = new Date(p.matchDate).toLocaleString("es-AR", {
       dateStyle: "full",
       timeStyle: "short",
+      timeZone: "America/Argentina/Buenos_Aires",
     });
+
+    // Generar un buffer PNG por cada QR
+    const qrBuffers: Buffer[] = await Promise.all(
+      p.qrCodes.map((code) => QRCode.toBuffer(code, { width: 280 })),
+    );
+
+    // Attachments: uno por QR con CID único
+    const attachments = qrBuffers.map((buf, i) => ({
+      filename: `entrada-${i + 1}.png`,
+      content: buf,
+      cid: `qrcode${i}@ligamakalle`,
+    }));
+
+    // HTML para cada QR
+    const qrBlocksHtml = p.qrCodes
+      .map(
+        (code, i) => `
+      <div style="text-align: center; margin: 20px 0; padding: 24px; background: #f9fafb; border-radius: 10px; border: 2px dashed #16a34a;">
+        <p style="margin: 0 0 8px; font-weight: bold; color: #111827;">
+          Entrada ${i + 1} de ${p.quantity}
+        </p>
+        <p style="margin: 0 0 12px; font-size: 13px; color: #6b7280;">
+          Mostrá este QR en el ingreso
+        </p>
+        <img src="cid:qrcode${i}@ligamakalle" alt="QR entrada ${i + 1}" width="220" height="220" style="display: block; margin: 0 auto;" />
+        <p style="margin: 12px 0 0; font-size: 11px; color: #9ca3af; word-break: break-all;">${code}</p>
+      </div>
+    `,
+      )
+      .join("");
 
     const html = `
 <!DOCTYPE html>
@@ -89,19 +116,18 @@ export async function sendTicketEmail(
 
     ${
       p.isEarlyBird
-        ? `
-    <div style="background: #fef9c3; border-left: 4px solid #ca8a04; padding: 12px 16px; border-radius: 6px; margin-bottom: 20px;">
+        ? `<div style="background: #fef9c3; border-left: 4px solid #ca8a04; padding: 12px 16px; border-radius: 6px; margin-bottom: 20px;">
       ✅ <strong>Precio preventa aplicado</strong>
-    </div>
-    `
+    </div>`
         : ""
     }
 
-    <!-- QR -->
-    <div style="text-align: center; margin: 24px 0; padding: 24px; background: #f9fafb; border-radius: 10px; border: 2px dashed #16a34a;">
-      <p style="margin: 0 0 12px; font-weight: bold; color: #111827;">Mostrá este QR en el ingreso</p>
-      <img src="cid:qrcode@ligamakalle" alt="QR de entrada" width="220" height="220" style="display: block; margin: 0 auto;" />
-      <p style="margin: 12px 0 0; font-size: 11px; color: #9ca3af; word-break: break-all;">${p.qrCode}</p>
+    <!-- QRs — uno por entrada -->
+    ${qrBlocksHtml}
+
+    <!-- Aviso uso único -->
+    <div style="background: #fff7ed; border-left: 4px solid #f59e0b; padding: 16px 20px; border-radius: 6px; margin-bottom: 20px;">
+      ⚠️ <strong>Entradas de uso único.</strong> Cada QR solo puede ser escaneado una vez en la entrada del estadio. No compartas tu código con nadie.
     </div>
 
     <!-- Instrucciones -->
@@ -117,7 +143,7 @@ export async function sendTicketEmail(
 
     <!-- Footer -->
     <div style="text-align: center; color: #9ca3af; font-size: 12px; border-top: 1px solid #e5e7eb; padding-top: 16px;">
-      <p style="margin: 0;">ID de ticket: ${p.ticketId}</p>
+      <p style="margin: 0;">ID de compra: ${p.ticketId}</p>
       <p style="margin: 4px 0 0;">Este es un email automático, no respondas directamente.</p>
     </div>
 
@@ -132,15 +158,9 @@ export async function sendTicketEmail(
         address: process.env.GMAIL_USER || "",
       },
       to: p.to,
-      subject: `⚽ Tu entrada para ${p.matchOpponent} está confirmada`,
+      subject: `⚽ Tu${p.quantity > 1 ? "s" : ""} entrada${p.quantity > 1 ? "s" : ""} para ${p.matchOpponent} está${p.quantity > 1 ? "n" : ""} confirmada${p.quantity > 1 ? "s" : ""}`,
       html,
-      attachments: [
-        {
-          filename: "qr.png",
-          content: qrBuffer,
-          cid: "qrcode@ligamakalle",
-        },
-      ],
+      attachments,
     });
 
     return { success: true };

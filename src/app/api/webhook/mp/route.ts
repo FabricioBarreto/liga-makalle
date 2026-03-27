@@ -1,4 +1,3 @@
-// src/app/api/webhook/mp/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { MercadoPagoConfig, Payment } from "mercadopago";
 import { prisma } from "@/lib/prisma";
@@ -48,7 +47,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
-    // Si ya fue procesado, no hacer nada
     if (existingTicket.mpStatus === "approved") {
       return NextResponse.json({ ok: true });
     }
@@ -84,8 +82,28 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      // Enviar email solo si no fue enviado antes
       if (!ticket.pdfSent) {
+        // Generar un QR por entrada
+        const qrCodes: string[] = [ticket.qrCode]; // el primero es el del ticket padre
+
+        for (let i = 1; i < ticket.quantity; i++) {
+          const extra = await prisma.ticket.create({
+            data: {
+              matchId: ticket.matchId,
+              buyerEmail: ticket.buyerEmail,
+              buyerPhone: ticket.buyerPhone,
+              quantity: 1,
+              unitPrice: ticket.unitPrice,
+              totalAmount: ticket.unitPrice,
+              isEarlyBird: ticket.isEarlyBird,
+              mpStatus: "approved",
+              pdfSent: true, // para que no se reenvíe
+              paidAt: ticket.paidAt,
+            },
+          });
+          qrCodes.push(extra.qrCode);
+        }
+
         const emailResult = await sendTicketEmail({
           to: ticket.buyerEmail,
           buyerPhone: ticket.buyerPhone,
@@ -98,7 +116,7 @@ export async function POST(req: NextRequest) {
           unitPrice: Number(ticket.unitPrice),
           totalAmount: Number(ticket.totalAmount),
           isEarlyBird: ticket.isEarlyBird,
-          qrCode: ticket.qrCode, // ← viene de DB, ya existe por @default(cuid())
+          qrCodes,
         });
 
         if (emailResult.success) {
