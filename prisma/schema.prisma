@@ -54,3 +54,14 @@ enum MatchStatus {
   FINISHED
   CANCELLED
 }
+
+model Operator {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  pin       String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@map("operators")
+}

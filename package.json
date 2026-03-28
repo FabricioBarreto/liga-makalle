@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@prisma/client": "^6.0.0",
+    "bcryptjs": "^3.0.3",
     "jsqr": "^1.4.0",
     "mercadopago": "^2.0.6",
     "next": "^15.0.0",
@@ -21,6 +22,7 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^22.0.0",
     "@types/nodemailer": "^6.4.17",
     "@types/qrcode": "^1.5.6",

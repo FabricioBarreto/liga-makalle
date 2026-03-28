@@ -10,9 +10,9 @@ import {
 export default async function ConfirmacionPage({
   searchParams,
 }: {
-  searchParams: Promise<{ ticket?: string; pending?: string }>; // ← Promise<>
+  searchParams: Promise<{ ticket?: string; pending?: string }>;
 }) {
-  const { ticket: ticketId, pending } = await searchParams; // ← await y desestructurá directo
+  const { ticket: ticketId, pending } = await searchParams;
   const isPending = pending === "true";
 
   let ticket = null;
@@ -25,13 +25,27 @@ export default async function ConfirmacionPage({
 
   if (!ticket) {
     return (
-      <main className="min-h-screen bg-club-dark bg-stripes flex flex-col items-center justify-center px-4">
-        <p className="text-slate-500 font-outfit mb-4">
+      <main
+        style={{
+          minHeight: "100vh",
+          background: "var(--bg)",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "0 1rem",
+        }}
+      >
+        <p style={{ color: "var(--t3)", marginBottom: "1rem" }}>
           No encontramos tu compra
         </p>
         <Link
           href="/"
-          className="text-club-celeste underline font-outfit text-sm"
+          style={{
+            color: "var(--c)",
+            textDecoration: "underline",
+            fontSize: "0.875rem",
+          }}
         >
           Volver al inicio
         </Link>
@@ -41,59 +55,182 @@ export default async function ConfirmacionPage({
 
   const isApproved = ticket.mpStatus === "approved";
   const orderNumber = generateOrderNumber(ticket.id);
+  const statusColor = isApproved
+    ? "var(--c)"
+    : isPending
+      ? "var(--y)"
+      : "var(--t3)";
 
   return (
-    <main className="min-h-screen bg-club-dark bg-stripes">
-      {/* Header */}
-      <header className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-club-dark-3 to-transparent" />
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-club-celeste to-transparent" />
-        <div className="relative max-w-lg mx-auto px-4 pt-10 pb-8 text-center">
-          {/* Icono estado */}
-          <div
-            className={`inline-flex items-center justify-center w-20 h-20 rounded-full border-2 mb-4 ${
-              isApproved
-                ? "border-club-celeste/50 bg-club-celeste/10 glow-celeste"
-                : isPending
-                  ? "border-amber-400/50 bg-amber-400/10"
-                  : "border-slate-600 bg-slate-800/40"
-            }`}
-          >
-            <span className="text-3xl">
-              {isApproved ? "✓" : isPending ? "⏳" : "?"}
-            </span>
-          </div>
+    <main style={{ minHeight: "100vh", background: "var(--bg)" }}>
+      {/* Línea top */}
+      <div
+        style={{
+          height: "2px",
+          background: `linear-gradient(to right, transparent, ${statusColor}, transparent)`,
+        }}
+      />
 
-          <h1
-            className={`font-bebas text-4xl tracking-wide leading-none mb-1 ${
-              isApproved ? "text-club-celeste" : "text-club-white"
-            }`}
-          >
-            {isApproved
-              ? "Pago confirmado"
-              : isPending
-                ? "Pago en proceso"
-                : "Verificando..."}
-          </h1>
-          <p className="text-slate-400 font-outfit text-sm">
-            {isApproved
-              ? `Enviamos tus entradas a ${ticket.buyerEmail}`
-              : isPending
-                ? "En cuanto se confirme recibirás las entradas por email"
-                : "Puede demorar unos minutos"}
-          </p>
+      {/* Header */}
+      <header
+        style={{
+          maxWidth: "480px",
+          margin: "0 auto",
+          padding: "2.5rem 1rem 1.5rem",
+          textAlign: "center",
+        }}
+      >
+        {/* Ícono */}
+        <div
+          className="au"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: "72px",
+            height: "72px",
+            borderRadius: "50%",
+            border: `2px solid ${statusColor}40`,
+            background: `${statusColor}12`,
+            marginBottom: "1.25rem",
+            position: "relative",
+          }}
+        >
+          {isApproved ? (
+            <svg
+              width="32"
+              height="32"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke={statusColor}
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M4.5 12.75l6 6 9-13.5" />
+            </svg>
+          ) : isPending ? (
+            <svg
+              width="28"
+              height="28"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke={statusColor}
+              strokeWidth="2"
+              style={{ animation: "spin 1.2s linear infinite" }}
+            >
+              <circle cx="12" cy="12" r="10" strokeOpacity="0.25" />
+              <path d="M12 2a10 10 0 0110 10" />
+            </svg>
+          ) : (
+            <svg
+              width="28"
+              height="28"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke={statusColor}
+              strokeWidth="2"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 8v4m0 4h.01" />
+            </svg>
+          )}
         </div>
+
+        <h1
+          className="au1"
+          style={{
+            fontFamily: "var(--font-display)",
+            fontSize: "clamp(2rem, 8vw, 3rem)",
+            letterSpacing: "0.05em",
+            color: isApproved ? "var(--c)" : "var(--t1)",
+            lineHeight: 1,
+            marginBottom: "0.5rem",
+          }}
+        >
+          {isApproved
+            ? "¡Pago confirmado!"
+            : isPending
+              ? "Pago en proceso"
+              : "Verificando..."}
+        </h1>
+
+        <p className="au2" style={{ color: "var(--t2)", fontSize: "0.875rem" }}>
+          {isApproved
+            ? `Entradas enviadas a ${ticket.buyerEmail}`
+            : isPending
+              ? "Recibirás las entradas por email al confirmarse"
+              : "Puede demorar unos minutos"}
+        </p>
       </header>
 
-      <div className="max-w-lg mx-auto px-4 pb-16 space-y-4 animate-fadeup">
-        {/* Detalle */}
-        <div className="card-club p-5">
-          <p className="text-club-celeste/50 text-xs uppercase tracking-widest font-outfit mb-4">
-            Detalle de la compra
-          </p>
-          <div className="space-y-3">
+      {/* Contenido */}
+      <div
+        style={{
+          maxWidth: "480px",
+          margin: "0 auto",
+          padding: "0 1rem 4rem",
+          display: "flex",
+          flexDirection: "column",
+          gap: "0.75rem",
+        }}
+      >
+        {/* Card ticket */}
+        <div
+          className="au2"
+          style={{
+            background: "var(--bg2)",
+            border: "1px solid var(--border)",
+            borderRadius: "16px",
+            overflow: "hidden",
+          }}
+        >
+          {/* Barra de estado */}
+          <div
+            style={{
+              height: "3px",
+              background: `linear-gradient(to right, ${statusColor}, ${statusColor}40)`,
+            }}
+          />
+
+          <div style={{ padding: "1.25rem" }}>
+            {/* Cabecera del card */}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "1rem",
+              }}
+            >
+              <span
+                style={{
+                  color: "var(--t3)",
+                  fontSize: "0.7rem",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.12em",
+                }}
+              >
+                Detalle de la compra
+              </span>
+              <span
+                style={{
+                  fontSize: "0.7rem",
+                  fontWeight: 600,
+                  padding: "3px 10px",
+                  borderRadius: "999px",
+                  background: `${statusColor}15`,
+                  color: statusColor,
+                  border: `1px solid ${statusColor}30`,
+                }}
+              >
+                {isApproved ? "Aprobado" : isPending ? "Pendiente" : "—"}
+              </span>
+            </div>
+
+            {/* Filas */}
             {[
-              { label: "Orden", value: orderNumber, highlight: true },
+              { label: "Orden", value: orderNumber, mono: true, accent: true },
               { label: "Partido", value: ticket.match.opponent },
               { label: "Instancia", value: ticket.match.round },
               { label: "Fecha", value: formatDate(ticket.match.date) },
@@ -103,24 +240,86 @@ export default async function ConfirmacionPage({
                 label: "Entradas",
                 value: `${ticket.quantity} entrada${ticket.quantity > 1 ? "s" : ""}`,
               },
-            ].map(({ label, value, highlight }) => (
+            ].map(({ label, value, mono, accent }) => (
               <div
                 key={label}
-                className="flex justify-between text-sm border-b border-club-celeste/5 pb-3 last:border-0 last:pb-0"
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  padding: "0.6rem 0",
+                  borderBottom: "1px solid rgba(255,255,255,0.04)",
+                  fontSize: "0.875rem",
+                }}
               >
-                <span className="text-slate-500 font-outfit">{label}</span>
+                <span style={{ color: "var(--t3)" }}>{label}</span>
                 <span
-                  className={`font-outfit font-semibold ${highlight ? "text-club-celeste font-mono" : "text-club-white"}`}
+                  style={{
+                    color: accent ? statusColor : "var(--t1)",
+                    fontFamily: mono ? "monospace" : "inherit",
+                    fontWeight: 600,
+                  }}
                 >
                   {value}
                 </span>
               </div>
             ))}
-            <div className="flex justify-between items-center pt-2 border-t border-club-celeste/15">
-              <span className="text-slate-400 font-outfit text-sm">
+
+            {/* Separador tipo ticket */}
+            <div
+              style={{
+                position: "relative",
+                margin: "1rem -1.25rem",
+                display: "flex",
+                alignItems: "center",
+              }}
+            >
+              <div
+                style={{
+                  width: "16px",
+                  height: "16px",
+                  borderRadius: "50%",
+                  background: "var(--bg)",
+                  flexShrink: 0,
+                }}
+              />
+              <div
+                style={{
+                  flex: 1,
+                  borderTop: "1px dashed rgba(255,255,255,0.08)",
+                }}
+              />
+              <div
+                style={{
+                  width: "16px",
+                  height: "16px",
+                  borderRadius: "50%",
+                  background: "var(--bg)",
+                  flexShrink: 0,
+                }}
+              />
+            </div>
+
+            {/* Total */}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <span style={{ color: "var(--t2)", fontSize: "0.875rem" }}>
                 Total pagado
               </span>
-              <span className="font-bebas text-3xl text-club-celeste tracking-wide">
+              <span
+                style={{
+                  fontFamily: "var(--font-display)",
+                  fontSize: "2.25rem",
+                  letterSpacing: "0.04em",
+                  color: statusColor,
+                  lineHeight: 1,
+                }}
+              >
                 {formatPrice(ticket.totalAmount)}
               </span>
             </div>
@@ -130,44 +329,105 @@ export default async function ConfirmacionPage({
         {/* Aviso email */}
         {isApproved && (
           <div
-            className="card-club p-5 border-club-celeste/25"
-            style={{ borderColor: "rgba(56,189,248,0.2)" }}
+            className="au3"
+            style={{
+              background: "var(--bg2)",
+              border: "1px solid var(--border)",
+              borderRadius: "12px",
+              padding: "1rem",
+              display: "flex",
+              gap: "0.75rem",
+              alignItems: "flex-start",
+            }}
           >
-            <div className="flex gap-3">
-              <div className="w-8 h-8 rounded-full bg-club-celeste/15 border border-club-celeste/30 flex items-center justify-center flex-shrink-0">
-                <span className="text-club-celeste text-sm">✉</span>
-              </div>
-              <div>
-                <p className="font-outfit font-semibold text-club-white text-sm mb-1">
-                  Revisá tu email
-                </p>
-                <p className="font-outfit text-slate-400 text-xs leading-relaxed">
-                  Enviamos las entradas con tu código QR a{" "}
-                  <strong className="text-slate-300">
-                    {ticket.buyerEmail}
-                  </strong>
-                  . Revisá también la carpeta de spam.
-                </p>
-              </div>
+            <div
+              style={{
+                width: "34px",
+                height: "34px",
+                borderRadius: "50%",
+                flexShrink: 0,
+                background: "var(--c)15",
+                border: "1px solid var(--c)30",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="var(--c)"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <rect x="2" y="4" width="20" height="16" rx="2" />
+                <path d="m22 7-8.97 5.7a1.94 1.94 0 01-2.06 0L2 7" />
+              </svg>
+            </div>
+            <div>
+              <p
+                style={{
+                  color: "var(--t1)",
+                  fontSize: "0.875rem",
+                  fontWeight: 600,
+                  marginBottom: "0.25rem",
+                }}
+              >
+                Revisá tu email
+              </p>
+              <p
+                style={{
+                  color: "var(--t2)",
+                  fontSize: "0.8rem",
+                  lineHeight: 1.5,
+                }}
+              >
+                Enviamos las entradas con código QR a{" "}
+                <strong style={{ color: "var(--t1)" }}>
+                  {ticket.buyerEmail}
+                </strong>
+                . Revisá también spam.
+              </p>
             </div>
           </div>
         )}
 
+        {/* Botón */}
         <Link
+          className="au4"
           href="/"
-          className="block w-full text-center py-3.5 rounded-xl border border-club-celeste/20 text-club-celeste/70 font-outfit font-semibold text-sm hover:border-club-celeste/40 hover:text-club-celeste transition-colors"
+          style={{
+            display: "block",
+            textAlign: "center",
+            padding: "0.875rem",
+            borderRadius: "12px",
+            border: "1px solid var(--border)",
+            color: "var(--c)",
+            fontSize: "0.875rem",
+            fontWeight: 600,
+            textDecoration: "none",
+            transition: "background 0.2s, border-color 0.2s",
+          }}
         >
-          Ver más partidos
+          Ver más partidos →
         </Link>
 
-        <div className="text-center">
-          <div className="flex justify-center gap-1 mb-2">
-            <div className="w-6 h-px bg-club-celeste/20" />
-            <div className="w-2 h-px bg-white/10" />
-            <div className="w-6 h-px bg-club-celeste/20" />
-          </div>
-          <p className="text-slate-700 text-xs font-outfit">CSCDM · Makallé</p>
-        </div>
+        <p
+          className="au5"
+          style={{
+            textAlign: "center",
+            color: "var(--t3)",
+            fontSize: "0.7rem",
+            letterSpacing: "0.12em",
+            textTransform: "uppercase",
+            paddingTop: "0.5rem",
+          }}
+        >
+          CSCDM · Makallé
+        </p>
       </div>
     </main>
   );

@@ -1,4 +1,3 @@
-// src/app/operador/page.tsx
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -31,14 +30,19 @@ type ScanResult =
     }
   | { valid: false; error: string };
 
-type Screen = "pin" | "scan" | "result";
-
-const PIN = "1234"; // cambiá esto o usá una env var
+type Screen = "login" | "scan" | "result";
 
 export default function OperadorPage() {
-  const [screen, setScreen] = useState<Screen>("pin");
+  const [screen, setScreen] = useState<Screen>("login");
+  const [operatorName, setOperatorName] = useState("");
+
+  // login
+  const [email, setEmail] = useState("");
   const [pin, setPin] = useState("");
-  const [pinErr, setPinErr] = useState(false);
+  const [loginErr, setLoginErr] = useState("");
+  const [loggingIn, setLoggingIn] = useState(false);
+
+  // scanner
   const [result, setResult] = useState<ScanResult | null>(null);
   const [scanning, setScanning] = useState(false);
   const [manualQR, setManualQR] = useState("");
@@ -49,7 +53,33 @@ export default function OperadorPage() {
   const streamRef = useRef<MediaStream | null>(null);
   const rafRef = useRef<number>(0);
 
-  // ── Cámara ──
+  const login = async () => {
+    if (!email || !pin) {
+      setLoginErr("Completá todos los campos");
+      return;
+    }
+    setLoggingIn(true);
+    setLoginErr("");
+    try {
+      const r = await fetch("/api/operators/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, pin }),
+      });
+      const data = await r.json();
+      if (!r.ok) {
+        setLoginErr(data.error ?? "Error al ingresar");
+        return;
+      }
+      setOperatorName(data.name);
+      setScreen("scan");
+    } catch {
+      setLoginErr("Error de conexión");
+    } finally {
+      setLoggingIn(false);
+    }
+  };
+
   const startCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -92,9 +122,7 @@ export default function OperadorPage() {
     if (code?.data) {
       stopCamera();
       validate(code.data);
-    } else {
-      rafRef.current = requestAnimationFrame(tick);
-    }
+    } else rafRef.current = requestAnimationFrame(tick);
   };
 
   const validate = async (qr: string) => {
@@ -111,23 +139,8 @@ export default function OperadorPage() {
     return () => stopCamera();
   }, [screen]);
 
-  // ── PIN ──
-  if (screen === "pin") {
-    const handlePin = (d: string) => {
-      const next = pin + d;
-      setPin(next);
-      setPinErr(false);
-      if (next.length === 4) {
-        if (next === PIN) {
-          setScreen("scan");
-          setPin("");
-        } else {
-          setPinErr(true);
-          setTimeout(() => setPin(""), 600);
-        }
-      }
-    };
-
+  // ── LOGIN ──
+  if (screen === "login") {
     return (
       <div
         style={{
@@ -137,15 +150,16 @@ export default function OperadorPage() {
           alignItems: "center",
           justifyContent: "center",
           fontFamily: F.b,
+          padding: 20,
         }}
       >
-        <div style={{ width: "100%", maxWidth: 320, padding: 24 }}>
-          <div style={{ textAlign: "center", marginBottom: 40 }}>
+        <div style={{ width: "100%", maxWidth: 360 }}>
+          <div style={{ textAlign: "center", marginBottom: 36 }}>
             <div
               style={{
                 fontFamily: F.d,
                 fontWeight: 900,
-                fontSize: 56,
+                fontSize: 52,
                 lineHeight: 0.9,
                 textTransform: "uppercase",
                 letterSpacing: "-1px",
@@ -176,90 +190,123 @@ export default function OperadorPage() {
             </div>
           </div>
 
-          {/* Puntos PIN */}
           <div
             style={{
+              background: C.bg2,
+              border: "1px solid rgba(0,212,255,0.08)",
+              borderRadius: 14,
+              padding: 24,
               display: "flex",
-              justifyContent: "center",
-              gap: 16,
-              marginBottom: 36,
+              flexDirection: "column",
+              gap: 14,
             }}
           >
-            {[0, 1, 2, 3].map((i) => (
-              <div
-                key={i}
+            <div>
+              <label
                 style={{
-                  width: 18,
-                  height: 18,
-                  borderRadius: "50%",
-                  background:
-                    pin.length > i
-                      ? pinErr
-                        ? C.red
-                        : C.accent
-                      : "transparent",
-                  border: `2px solid ${pin.length > i ? (pinErr ? C.red : C.accent) : C.t3}`,
-                  transition: "all .15s",
-                  boxShadow:
-                    pin.length > i && !pinErr
-                      ? `0 0 10px ${C.accent}60`
-                      : "none",
+                  display: "block",
+                  color: C.t3,
+                  fontSize: 10,
+                  letterSpacing: "2px",
+                  textTransform: "uppercase",
+                  fontFamily: F.d,
+                  fontWeight: 700,
+                  marginBottom: 8,
+                }}
+              >
+                Correo electrónico
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="operador@cscdm.com"
+                style={{
+                  width: "100%",
+                  background: "rgba(8,12,20,0.8)",
+                  border: "1px solid rgba(0,212,255,0.15)",
+                  borderRadius: 8,
+                  padding: "11px 14px",
+                  color: "#fff",
+                  fontSize: 14,
+                  fontFamily: F.b,
+                  outline: "none",
+                  boxSizing: "border-box",
                 }}
               />
-            ))}
-          </div>
+            </div>
+            <div>
+              <label
+                style={{
+                  display: "block",
+                  color: C.t3,
+                  fontSize: 10,
+                  letterSpacing: "2px",
+                  textTransform: "uppercase",
+                  fontFamily: F.d,
+                  fontWeight: 700,
+                  marginBottom: 8,
+                }}
+              >
+                PIN
+              </label>
+              <input
+                type="password"
+                value={pin}
+                onChange={(e) => setPin(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && login()}
+                placeholder="Tu PIN de acceso"
+                style={{
+                  width: "100%",
+                  background: "rgba(8,12,20,0.8)",
+                  border: "1px solid rgba(0,212,255,0.15)",
+                  borderRadius: 8,
+                  padding: "11px 14px",
+                  color: "#fff",
+                  fontSize: 14,
+                  fontFamily: F.b,
+                  outline: "none",
+                  boxSizing: "border-box",
+                }}
+              />
+            </div>
 
-          {/* Teclado */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(3,1fr)",
-              gap: 10,
-            }}
-          >
-            {["1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "⌫"].map(
-              (d, i) => (
-                <button
-                  key={i}
-                  onClick={() => {
-                    if (d === "⌫") {
-                      setPin((p) => p.slice(0, -1));
-                      setPinErr(false);
-                    } else if (d !== "") handlePin(d);
-                  }}
-                  style={{
-                    height: 64,
-                    borderRadius: 12,
-                    background:
-                      d === "" ? "transparent" : "rgba(0,212,255,0.05)",
-                    border: d === "" ? "none" : `1px solid rgba(0,212,255,0.1)`,
-                    color: d === "⌫" ? C.t3 : "#fff",
-                    fontFamily: F.d,
-                    fontWeight: 800,
-                    fontSize: 28,
-                    cursor: d === "" ? "default" : "pointer",
-                    transition: "all .1s",
-                  }}
-                >
-                  {d}
-                </button>
-              ),
+            {loginErr && (
+              <p
+                style={{
+                  color: C.red,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  margin: 0,
+                  textAlign: "center",
+                }}
+              >
+                {loginErr}
+              </p>
             )}
-          </div>
 
-          {pinErr && (
-            <p
+            <button
+              onClick={login}
+              disabled={loggingIn}
               style={{
-                textAlign: "center",
-                color: C.red,
-                fontSize: 13,
-                marginTop: 16,
-                fontWeight: 600,
+                background: "linear-gradient(135deg,#0099CC,#00D4FF)",
+                color: C.bg,
+                fontFamily: F.d,
+                fontWeight: 800,
+                fontSize: 20,
+                letterSpacing: "2px",
+                textTransform: "uppercase",
+                borderRadius: 8,
+                padding: "13px 24px",
+                border: "none",
+                cursor: "pointer",
+                opacity: loggingIn ? 0.6 : 1,
+                marginTop: 4,
               }}
             >
-              PIN incorrecto
-            </p>
-          )}
+              {loggingIn ? "Verificando..." : "Ingresar"}
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -269,7 +316,6 @@ export default function OperadorPage() {
   if (screen === "scan") {
     return (
       <div style={{ minHeight: "100vh", background: C.bg, fontFamily: F.b }}>
-        {/* Header */}
         <header
           style={{
             background: "rgba(8,12,20,0.97)",
@@ -291,7 +337,7 @@ export default function OperadorPage() {
                 color: "rgba(0,212,255,0.4)",
               }}
             >
-              Operador · Escáner
+              {operatorName} · Escáner
             </div>
             <div
               style={{
@@ -308,7 +354,8 @@ export default function OperadorPage() {
           <button
             onClick={() => {
               stopCamera();
-              setScreen("pin");
+              setScreen("login");
+              setEmail("");
               setPin("");
             }}
             style={{
@@ -328,7 +375,6 @@ export default function OperadorPage() {
         </header>
 
         <div style={{ maxWidth: 480, margin: "0 auto", padding: "24px 20px" }}>
-          {/* Visor cámara */}
           <div
             style={{
               position: "relative",
@@ -337,7 +383,7 @@ export default function OperadorPage() {
               background: "#000",
               aspectRatio: "1",
               marginBottom: 20,
-              border: `2px solid rgba(0,212,255,0.2)`,
+              border: "2px solid rgba(0,212,255,0.2)",
             }}
           >
             <video
@@ -352,11 +398,8 @@ export default function OperadorPage() {
               }}
             />
             <canvas ref={canvasRef} style={{ display: "none" }} />
-
-            {/* Marco de escaneo */}
             {scanning && (
               <>
-                {/* línea de scan animada */}
                 <div
                   style={{
                     position: "absolute",
@@ -368,13 +411,12 @@ export default function OperadorPage() {
                     top: "50%",
                   }}
                 />
-                {/* esquinas */}
                 {[
-                  ["0%", "0%", "right", "bottom"],
-                  ["100%", "0%", "left", "bottom"],
-                  ["0%", "100%", "right", "top"],
-                  ["100%", "100%", "left", "top"],
-                ].map(([l, t, br, bb], i) => (
+                  ["0%", "0%"],
+                  ["100%", "0%"],
+                  ["0%", "100%"],
+                  ["100%", "100%"],
+                ].map(([l, t], i) => (
                   <div
                     key={i}
                     style={{
@@ -389,13 +431,12 @@ export default function OperadorPage() {
                         i % 2 === 0 ? `3px solid ${C.accent}` : "none",
                       borderRight:
                         i % 2 === 1 ? `3px solid ${C.accent}` : "none",
-                      transform: `translate(${i % 2 === 0 ? "8px" : "-8px"}, ${i < 2 ? "8px" : "-8px"})`,
+                      transform: `translate(${i % 2 === 0 ? "8px" : "-8px"},${i < 2 ? "8px" : "-8px"})`,
                     }}
                   />
                 ))}
               </>
             )}
-
             {!scanning && !showManual && (
               <div
                 style={{
@@ -408,7 +449,6 @@ export default function OperadorPage() {
                   gap: 12,
                 }}
               >
-                <div style={{ fontSize: 48 }}>📷</div>
                 <p
                   style={{
                     color: C.t2,
@@ -422,9 +462,7 @@ export default function OperadorPage() {
               </div>
             )}
           </div>
-
           <style>{`@keyframes scan { 0%,100%{top:15%} 50%{top:85%} }`}</style>
-
           <p
             style={{
               textAlign: "center",
@@ -435,15 +473,13 @@ export default function OperadorPage() {
           >
             Apuntá la cámara al QR del comprador
           </p>
-
-          {/* Ingreso manual */}
           <button
             onClick={() => setShowManual(!showManual)}
             style={{
               width: "100%",
-              padding: "12px",
+              padding: 12,
               borderRadius: 10,
-              border: `1px solid rgba(0,212,255,0.15)`,
+              border: "1px solid rgba(0,212,255,0.15)",
               background: "rgba(0,212,255,0.04)",
               color: C.t2,
               fontFamily: F.b,
@@ -454,7 +490,6 @@ export default function OperadorPage() {
           >
             Ingresar código manual
           </button>
-
           {showManual && (
             <div style={{ display: "flex", gap: 10 }}>
               <input
@@ -527,7 +562,7 @@ export default function OperadorPage() {
             color: "rgba(0,212,255,0.4)",
           }}
         >
-          Operador · Resultado
+          {operatorName} · Resultado
         </div>
         <div
           style={{
@@ -541,7 +576,6 @@ export default function OperadorPage() {
           Verificación
         </div>
       </header>
-
       <div
         style={{
           flex: 1,
@@ -563,10 +597,11 @@ export default function OperadorPage() {
             >
               <div
                 style={{
-                  background: `linear-gradient(135deg, rgba(0,255,136,0.15), rgba(0,255,136,0.05))`,
+                  background:
+                    "linear-gradient(135deg,rgba(0,255,136,0.15),rgba(0,255,136,0.05))",
                   padding: "28px 24px",
                   textAlign: "center",
-                  borderBottom: `1px solid rgba(0,255,136,0.15)`,
+                  borderBottom: "1px solid rgba(0,255,136,0.15)",
                 }}
               >
                 <div style={{ fontSize: 64, marginBottom: 8 }}>✅</div>
@@ -589,7 +624,7 @@ export default function OperadorPage() {
                   ["Email", result.email],
                   ["Teléfono", result.phone],
                   ["Entradas", `${result.quantity}`],
-                  ["Tipo", result.isEarlyBird ? "preventa" : "Precio normal"],
+                  ["Tipo", result.isEarlyBird ? "Preventa" : "Precio normal"],
                 ].map(([l, v]) => (
                   <div
                     key={l}
@@ -628,10 +663,11 @@ export default function OperadorPage() {
             >
               <div
                 style={{
-                  background: `linear-gradient(135deg, rgba(255,59,59,0.15), rgba(255,59,59,0.05))`,
+                  background:
+                    "linear-gradient(135deg,rgba(255,59,59,0.15),rgba(255,59,59,0.05))",
                   padding: "28px 24px",
                   textAlign: "center",
-                  borderBottom: `1px solid rgba(255,59,59,0.15)`,
+                  borderBottom: "1px solid rgba(255,59,59,0.15)",
                 }}
               >
                 <div style={{ fontSize: 64, marginBottom: 8 }}>❌</div>
@@ -653,7 +689,6 @@ export default function OperadorPage() {
               </div>
             </div>
           )}
-
           <button
             onClick={() => {
               setResult(null);
@@ -662,7 +697,7 @@ export default function OperadorPage() {
             style={{
               width: "100%",
               marginTop: 20,
-              padding: "16px",
+              padding: 16,
               borderRadius: 12,
               background: "linear-gradient(135deg,#0099CC,#00D4FF)",
               color: C.bg,
@@ -673,7 +708,6 @@ export default function OperadorPage() {
               textTransform: "uppercase",
               border: "none",
               cursor: "pointer",
-              boxShadow: `0 4px 20px rgba(0,212,255,0.2)`,
             }}
           >
             Escanear otro
